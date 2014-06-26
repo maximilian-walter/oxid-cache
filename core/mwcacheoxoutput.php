@@ -102,11 +102,20 @@ class mwCacheOxOutput extends mwCacheOxOutput_parent
     {
         $time = time() + $iTtl;
 
-        $this
-            ->addHeader( 'Date: ' . gmdate( "D, d M Y H:i:s" ) . ' GMT' )
-            ->addHeader( 'Last-Modified: ' . gmdate( "D, d M Y H:i:s" ) . ' GMT' )
-            ->addHeader( 'Expires: ' . gmdate( "D, d M Y H:i:s", $time ) . ' GMT' )
-            ->addHeader( 'Cache-Control: public, max-age=' . ( $time - time() ) );
+        // Make sure the browser contacts the server if an cookie changes
+        // Logged in users must not get cached pages!
+        $this->addHeader( 'Vary: Accept-Encoding,Cookie' );
+
+        // Enable caching only for guests!
+        if ( !$this->getSession()->isSessionStarted() || !$this->getUser() ) {
+            $this
+                ->addHeader( 'Date: ' . gmdate( "D, d M Y H:i:s" ) . ' GMT' )
+                ->addHeader( 'Last-Modified: ' . gmdate( "D, d M Y H:i:s" ) . ' GMT' )
+                ->addHeader( 'Expires: ' . gmdate( "D, d M Y H:i:s", $time ) . ' GMT' )
+                ->addHeader( 'Cache-Control: public, max-age=' . ( $time - time() ) );
+        } else {
+            $this->addHeader( 'Cache-Control: private, must-revalidate' );
+        }
 
         // HACK: Make sure the obsolete Pragma-Header is not sent
         header_remove( 'Pragma' );
